@@ -4,7 +4,6 @@ import { VueChessboard } from "./vue-chessboard";
 import { ComponentChessboard } from "./component-chessboard";
 import { boards } from "../globals";
 import { Nullable, IChessboard, MousePosition, TArea } from "../types";
-import { IGame } from "./component-chessboard/types";
 
 export { GlobalChessboard } from "./global-chessboard";
 export { VueChessboard } from "./vue-chessboard";
@@ -43,26 +42,4 @@ export function getBoard(): Nullable<IChessboard> {
   }
 
   return null;
-}
-
-export function getSquareAtMouseCoordinates(
-  board: IChessboard,
-  game: IGame,
-  mousePosition: MousePosition
-): Nullable<TArea> {
-  const flipped = game.getOptions().flipped;
-  const boardRect = board.getRelativeContainer().getBoundingClientRect();
-  const x = mousePosition.x - boardRect.left;
-  const y = mousePosition.y - boardRect.top;
-  const squareSize = boardRect.width / 8;
-  let file = Math.floor(x / squareSize);
-  let rank = 7 - Math.floor(y / squareSize);
-  if (file < 0 || file > 7 || rank < 0 || rank > 7) {
-    return null;
-  }
-  if (flipped) {
-    file = 7 - file;
-    rank = 7 - rank;
-  }
-  return `${"abcdefgh"[file]}${rank + 1}` as TArea;
 }

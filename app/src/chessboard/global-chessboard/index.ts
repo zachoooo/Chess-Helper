@@ -1,14 +1,7 @@
 import get from "lodash/get";
 import { RED_SQUARE_COLOR, ALL_AREAS } from "../../utils";
-import {
-  Nullable,
-  IChessboard,
-  TArea,
-  IMoveDetails,
-  MousePosition,
-} from "../../types";
+import { Nullable, IChessboard, TArea, IMoveDetails } from "../../types";
 import { IOnRefreshEvent, IChessBoard, TElementWithChessboard } from "./types";
-import { getSquareAtMouseCoordinates } from "..";
 
 /**
  * Global chessboard
@@ -40,10 +33,6 @@ export class GlobalChessboard implements IChessboard {
     return Array.from(this.element.children).filter((c) =>
       c.matches("[id*=boardarea]")
     )[0];
-  }
-
-  getSquareAtMouseCoordinates(mousePosition: MousePosition): Nullable<TArea> {
-    return null;
   }
 
   makeMove(fromSq: TArea, toSq: TArea, promotionPiece?: string) {

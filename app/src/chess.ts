@@ -1,6 +1,5 @@
 import filter from "lodash/filter";
 import isEqual from "lodash/isEqual";
-import find from "lodash/find";
 import { postMessage, squareToCoords } from "./utils";
 import { drawCache } from "./globals";
 import { parseCommand } from "./commands";
@@ -17,6 +16,7 @@ import {
   KeyDirection,
 } from "./types";
 import { i18n } from "./i18n";
+import { ComponentChessboard } from "./chessboard";
 
 /**
  * Check if input is valid square name
@@ -106,7 +106,7 @@ export function go(board: IChessboard, input: string): boolean {
 }
 
 export function goKbAndMouse(
-  board: IChessboard,
+  board: ComponentChessboard,
   targetSquare: TArea,
   piece: TPiece,
   direction: KeyDirection
@@ -121,15 +121,74 @@ export function goKbAndMouse(
       from: "..",
     },
   ]);
-  console.log(moves);
   if (moves.length === 1) {
     const move = moves[0];
     makeMove(board, move.from, move.to, move.promotionPiece);
   } else if (moves.length > 1) {
-    postMessage(i18n("ambiguousMove", { move: targetSquare }));
+    const move = narrowDownMoves(
+      moves,
+      piece,
+      direction,
+      board.game.getOptions().flipped
+    );
+    if (move) {
+      makeMove(board, move.from, move.to, move.promotionPiece);
+    } else {
+      postMessage(i18n("ambiguousMove", { move: targetSquare }));
+    }
   } else {
     postMessage(i18n("incorrectMove", { move: targetSquare }));
   }
+}
+
+function narrowDownMoves(
+  potentialMoves: IMove[],
+  piece: TPiece,
+  direction: KeyDirection,
+  flipped: boolean
+): Nullable<IMove> {
+  if (piece === "p") {
+    // Check for autopromotion
+    const firstMove = potentialMoves[0];
+    const everyMoveStartsFromSameSquare = potentialMoves.every(
+      (move) => move.from === firstMove.from
+    );
+
+    if (everyMoveStartsFromSameSquare) {
+      const queenPromotionMove = potentialMoves.find((move) => {
+        return move.promotionPiece === "q";
+      });
+      if (queenPromotionMove) {
+        return queenPromotionMove;
+      }
+    }
+
+    if (direction === KeyDirection.GENERAL) {
+      const forwardMoves = potentialMoves.filter((move) => {
+        move.from[0] === move.to[0];
+      });
+      if (forwardMoves.length === 1) {
+        return forwardMoves[0];
+      }
+    } else if (direction === KeyDirection.LEFT) {
+      const leftMoves = potentialMoves.filter((move) => {
+        return flipped ? move.from[0] > move.to[0] : move.from[0] < move.to[0];
+      });
+      if (leftMoves.length === 1) {
+        return leftMoves[0];
+      }
+    } else if (direction === KeyDirection.RIGHT) {
+      const rightMoves = potentialMoves.filter((move) => {
+        return flipped ? move.from[0] < move.to[0] : move.from[0] > move.to[0];
+      });
+      if (rightMoves.length === 1) {
+        return rightMoves[0];
+      }
+    } else {
+      throw new Error("Unsupported key direction");
+    }
+  }
+  return null;
 }
 
 /**
@@ -163,9 +222,6 @@ export function getLegalMoves(
   potentialMoves: IPotentialMoves
 ): IMove[] {
   if (!board || !potentialMoves.length || !board.isPlayersMove()) {
-    console.log(
-      `!board: ${!board}, !potentialMoves.length: ${!potentialMoves.length}, !board.isPlayersMove(): ${!board.isPlayersMove()}`
-    );
     return [];
   }
 
@@ -181,13 +237,6 @@ export function getLegalMoves(
         return false;
       }
 
-      console.log(p);
-      const condition1 = new RegExp(`^${move.piece}$`).test(p.type);
-      const condition2 = new RegExp(`^${move.from}$`).test(p.area);
-      const condition3 = board.isLegalMove(p.area, move.to);
-      console.log(
-        `Condition 1: ${condition1}, Condition 2: ${condition2}, Condition 3: ${condition3}`
-      );
       return (
         // RegExp is required, because move.piece/move.from aren't always there
         // It might be just ".", meaning "any piece" (imagine move like "e2e4")

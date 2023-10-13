@@ -6,14 +6,7 @@ import {
   RED_SQUARE_COLOR,
   ALL_AREAS,
 } from "../../utils";
-import {
-  AnyFunction,
-  IChessboard,
-  TArea,
-  IMoveDetails,
-  MousePosition,
-  Nullable,
-} from "../../types";
+import { AnyFunction, IChessboard, TArea, IMoveDetails } from "../../types";
 import {
   TElementWithVueChessboard,
   IVueChessboardStore,
@@ -66,10 +59,6 @@ export class VueChessboard implements IChessboard {
 
   getRelativeContainer() {
     return this.element;
-  }
-
-  getSquareAtMouseCoordinates(mousePosition: MousePosition): Nullable<TArea> {
-    return null;
   }
 
   makeMove(fromSq: TArea, toSq: TArea, promotionPiece?: string) {

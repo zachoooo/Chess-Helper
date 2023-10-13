@@ -324,7 +324,6 @@ describe("getLegalMoves", function () {
       getPiecesSetup: () => pieces,
       getElement: () => document.createElement("div"),
       getRelativeContainer: () => document.createElement("div"),
-      getSquareAtMouseCoordinates: (mousePosition: MousePosition) => null,
       makeMove: (fromSq: TArea, toSq: TArea, promotionPiece?: string) => {},
       markArrow: (fromSq: TArea, toSq: TArea) => {},
       unmarkArrow: (fromSq: TArea, toSq: TArea) => {},

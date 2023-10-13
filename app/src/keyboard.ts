@@ -1,5 +1,5 @@
 import { go, goKbAndMouse } from "./chess";
-import { getBoard } from "./chessboard";
+import { ComponentChessboard, getBoard } from "./chessboard";
 import { holdingCtrlOrCmd, isEditable, isModifierPressed } from "./utils";
 import { Nullable, KeyDirection } from "./types";
 import { getMousePosition } from "./mouse";
@@ -138,8 +138,8 @@ export function bindBoardKeyDown(boardElement: HTMLElement) {
     }
 
     const board = getBoard();
-    if (!board) {
-      return;
+    if (!(board instanceof ComponentChessboard)) {
+      return; // Only use supported boards
     }
 
     const targetSquare = board.getSquareAtMouseCoordinates(getMousePosition());

@@ -9,7 +9,6 @@ import {
 import { IGame, TElementWithGame, IMoveEvent } from "./types";
 import { squareToCoords, ALL_AREAS } from "../../utils";
 import { dispatchPointerEvent } from "../../dom-events";
-import { getSquareAtMouseCoordinates } from "..";
 
 const ERROR_AREA_COLOR = "#ff4444";
 
@@ -40,7 +39,21 @@ export class ComponentChessboard implements IChessboard {
   }
 
   getSquareAtMouseCoordinates(mousePosition: MousePosition): Nullable<TArea> {
-    return getSquareAtMouseCoordinates(this, this.game, mousePosition);
+    const flipped = this.game.getOptions().flipped;
+    const boardRect = this.getRelativeContainer().getBoundingClientRect();
+    const x = mousePosition.x - boardRect.left;
+    const y = mousePosition.y - boardRect.top;
+    const squareSize = boardRect.width / 8;
+    let file = Math.floor(x / squareSize);
+    let rank = 7 - Math.floor(y / squareSize);
+    if (file < 0 || file > 7 || rank < 0 || rank > 7) {
+      return null;
+    }
+    if (flipped) {
+      file = 7 - file;
+      rank = 7 - rank;
+    }
+    return `${"abcdefgh"[file]}${rank + 1}` as TArea;
   }
 
   makeMove(fromSq: TArea, toSq: TArea, promotionPiece?: string) {

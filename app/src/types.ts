@@ -14,9 +14,6 @@ export type MousePosition = {
 export interface IChessboard {
   getElement: () => Element;
   getRelativeContainer: () => Element;
-  getSquareAtMouseCoordinates: (
-    mousePosition: MousePosition
-  ) => Nullable<TArea>;
   makeMove: (fromSq: TArea, toSq: TArea, promotionPiece?: string) => void;
   isLegalMove: (fromSq: TArea, toSq: TArea) => boolean;
   isPlayersMove: () => boolean;
