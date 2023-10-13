@@ -1,15 +1,12 @@
-import map from 'lodash/map';
-import {
-  drawMovesOnBoard,
-} from './chess';
-import {
-  getBoard,
-} from './chessboard';
+import map from "lodash/map";
+import { drawMovesOnBoard } from "./chess";
+import { getBoard } from "./chessboard";
 import {
   bindInputKeyDown,
   bindInputFocus,
   bindBlindFoldPeek,
-} from './keyboard';
+  bindBoardKeyDown,
+} from "./keyboard";
 import {
   onDocumentReady,
   isEditable,
@@ -17,15 +14,12 @@ import {
   createInitialElements,
   startUpdatingAriaHiddenElements,
   markExtentionInit,
-} from './utils';
-import {
-  commands,
-} from './commands';
-import {
-  renderBlindfold,
-} from './blindfold';
-import autocomplete from './lib/autocomplete';
-import { i18n } from './i18n';
+} from "./utils";
+import { commands } from "./commands";
+import { renderBlindfold } from "./blindfold";
+import autocomplete from "./lib/autocomplete";
+import { i18n } from "./i18n";
+import { bindDocumentMouse } from "./mouse";
 
 /**
  * Prepare the extension code and run
@@ -43,38 +37,38 @@ function init() {
   `;
   const boardElement = document.querySelector(selector);
   if (boardElement) {
-    const {
-      wrapper,
-      input,
-      unfocusedLabel,
-    } = createInitialElements();
+    const { wrapper, input, unfocusedLabel } = createInitialElements();
 
+    bindDocumentMouse();
+    bindBoardKeyDown(document.body);
     bindInputKeyDown(input);
     bindInputFocus(input);
     boardElement.appendChild(wrapper);
     setTimeout(() => input.focus());
 
     autocomplete({
-      selector: '.ccHelper-input',
+      selector: ".ccHelper-input",
       minChars: 1,
       source: (term, suggest) => {
         term = term.toLowerCase();
         const choices = map(commands, (v, k) => `/${k}`);
-        suggest(choices.filter((choice) => !choice.toLowerCase().indexOf(term)));
+        suggest(
+          choices.filter((choice) => !choice.toLowerCase().indexOf(term))
+        );
       },
     });
 
     startUpdatingAriaHiddenElements();
     bindBlindFoldPeek(input);
 
-    document.addEventListener('ccHelper-draw', () => {
+    document.addEventListener("ccHelper-draw", () => {
       const board = getBoard();
       if (board) {
         drawMovesOnBoard(board, input.value);
       }
     });
 
-    input.addEventListener('input', () => {
+    input.addEventListener("input", () => {
       try {
         const board = getBoard();
 
@@ -87,11 +81,8 @@ function init() {
     });
 
     updatePlaceholder(unfocusedLabel);
-    ['focusin', 'focusout'].forEach((e) => {
-      document.addEventListener(
-        e,
-        () => updatePlaceholder(unfocusedLabel)
-      );
+    ["focusin", "focusout"].forEach((e) => {
+      document.addEventListener(e, () => updatePlaceholder(unfocusedLabel));
     });
 
     buildMessagesMarkup();
@@ -113,9 +104,9 @@ function updatePlaceholder(unfocusedLabel: HTMLElement) {
   const active = document.activeElement;
 
   if (isEditable(active)) {
-    unfocusedLabel.textContent = i18n('focusHintFromOther');
+    unfocusedLabel.textContent = i18n("focusHintFromOther");
   } else {
-    unfocusedLabel.textContent = i18n('focusHint');
+    unfocusedLabel.textContent = i18n("focusHint");
   }
 }
 

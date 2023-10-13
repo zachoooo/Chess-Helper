@@ -1,5 +1,5 @@
-import jsDomGlobal from 'jsdom-global';
-import assert from 'assert';
+import jsDomGlobal from "jsdom-global";
+import assert from "assert";
 
 jsDomGlobal();
 
@@ -8,273 +8,310 @@ import {
   parseUCI,
   getLegalMoves,
   parseMoveInput,
-} from '../src/chess';
-import {
-  IChessboard,
-  TArea,
-} from '../src/types';
+} from "../src/chess";
+import { IChessboard, MousePosition, TArea } from "../src/types";
 
-describe('parseAlgebraic', function() {
-  it('parses short algebraic moves', function() {
-    assert.deepEqual(parseAlgebraic('Rd2'), [{
-      piece: 'r',
-      from: '..',
-      to: 'd2',
-    }]);
+describe("parseAlgebraic", function () {
+  it("parses short algebraic moves", function () {
+    assert.deepEqual(parseAlgebraic("Rd2"), [
+      {
+        piece: "r",
+        from: "..",
+        to: "d2",
+      },
+    ]);
   });
 
-  it('parses pawn moves', function() {
-    assert.deepEqual(parseAlgebraic('d2'), [{
-      piece: 'p',
-      from: '..',
-      to: 'd2',
-    }]);
+  it("parses pawn moves", function () {
+    assert.deepEqual(parseAlgebraic("d2"), [
+      {
+        piece: "p",
+        from: "..",
+        to: "d2",
+      },
+    ]);
   });
 
-  it('parses full moves', function() {
-    assert.deepEqual(parseAlgebraic('Re2d2'), [{
-      piece: 'r',
-      from: 'e2',
-      to: 'd2',
-    }]);
+  it("parses full moves", function () {
+    assert.deepEqual(parseAlgebraic("Re2d2"), [
+      {
+        piece: "r",
+        from: "e2",
+        to: "d2",
+      },
+    ]);
   });
 
-  it('parses pawn captures', function() {
-    assert.deepEqual(parseAlgebraic('exd3'), [{
-      piece: 'p',
-      from: 'e.',
-      to: 'd3',
-    }]);
+  it("parses pawn captures", function () {
+    assert.deepEqual(parseAlgebraic("exd3"), [
+      {
+        piece: "p",
+        from: "e.",
+        to: "d3",
+      },
+    ]);
 
     // en passant
-    assert.deepEqual(parseAlgebraic('exd3e.p.'), [{
-      piece: 'p',
-      from: 'e.',
-      to: 'd3',
-    }]);
-  });
-
-  it('parses piece captures', function() {
-    assert.deepEqual(parseAlgebraic('Rxd2'), [{
-      piece: 'r',
-      from: '..',
-      to: 'd2',
-    }]);
-  });
-
-  it('parses full piece captures', function() {
-    assert.deepEqual(parseAlgebraic('Re2xd2'), [{
-      piece: 'r',
-      from: 'e2',
-      to: 'd2',
-    }]);
-  });
-
-  it('parses partial disambiguation', function() {
-    assert.deepEqual(parseAlgebraic('R2xd2'), [{
-      piece: 'r',
-      from: '.2',
-      to: 'd2',
-    }]);
-
-    assert.deepEqual(parseAlgebraic('Rexd2'), [{
-      piece: 'r',
-      from: 'e.',
-      to: 'd2',
-    }]);
-  });
-
-  it('allows to mark a check', function() {
-    assert.deepEqual(parseAlgebraic('Rd2+'), [{
-      piece: 'r',
-      from: '..',
-      to: 'd2',
-    }]);
-  });
-
-  it('allows to mark a mate', function() {
-    assert.deepEqual(parseAlgebraic('Rd2#'), [{
-      piece: 'r',
-      from: '..',
-      to: 'd2',
-    }]);
-  });
-
-  it('parses castling', function() {
-    assert.deepEqual(parseAlgebraic('o-o'), [
+    assert.deepEqual(parseAlgebraic("exd3e.p."), [
       {
-        piece: 'k',
-        from: 'e1',
-        to: 'g1',
+        piece: "p",
+        from: "e.",
+        to: "d3",
       },
-      {
-        piece: 'k',
-        from: 'e8',
-        to: 'g8',
-      }
-    ]);
-
-    assert.deepEqual(parseAlgebraic('0-0'), [
-      {
-        piece: 'k',
-        from: 'e1',
-        to: 'g1',
-      },
-      {
-        piece: 'k',
-        from: 'e8',
-        to: 'g8',
-      }
-    ]);
-
-    assert.deepEqual(parseAlgebraic('ooo'), [
-      {
-        piece: 'k',
-        from: 'e1',
-        to: 'c1',
-      },
-      {
-        piece: 'k',
-        from: 'e8',
-        to: 'c8',
-      }
-    ]);
-
-    assert.deepEqual(parseAlgebraic('0-0-0'), [
-      {
-        piece: 'k',
-        from: 'e1',
-        to: 'c1',
-      },
-      {
-        piece: 'k',
-        from: 'e8',
-        to: 'c8',
-      }
     ]);
   });
 
-  it('ignores not-existing pieces and squares', function() {
-    assert.deepEqual(parseAlgebraic('Xd2'), []);
+  it("parses piece captures", function () {
+    assert.deepEqual(parseAlgebraic("Rxd2"), [
+      {
+        piece: "r",
+        from: "..",
+        to: "d2",
+      },
+    ]);
   });
 
-  it('parses pawn promotion', function() {
-    assert.deepEqual(parseAlgebraic('d8=Q'), [{
-      piece: 'p',
-      from: '..',
-      to: 'd8',
-      promotionPiece: 'q',
-    }]);
+  it("parses full piece captures", function () {
+    assert.deepEqual(parseAlgebraic("Re2xd2"), [
+      {
+        piece: "r",
+        from: "e2",
+        to: "d2",
+      },
+    ]);
   });
 
-  it('ignores promotion for pieces', function() {
-    assert.deepEqual(parseAlgebraic('Nd8=Q'), []);
+  it("parses partial disambiguation", function () {
+    assert.deepEqual(parseAlgebraic("R2xd2"), [
+      {
+        piece: "r",
+        from: ".2",
+        to: "d2",
+      },
+    ]);
+
+    assert.deepEqual(parseAlgebraic("Rexd2"), [
+      {
+        piece: "r",
+        from: "e.",
+        to: "d2",
+      },
+    ]);
   });
 
-  describe('allows lowercase piece letter if unambiguous', function() {
-    it('b3', function () {
-      assert.deepEqual(parseAlgebraic('b3'), [{
-        piece: 'p',
-        from: '..',
-        to: 'b3',
-      }]);
-    });
-    it('Bb3', function () {
-      assert.deepEqual(parseAlgebraic('Bb3'), [{
-        piece: 'b',
-        from: '..',
-        to: 'b3',
-      }]);
-    });
-    it('bc4', function () {
-      assert.deepEqual(parseAlgebraic('bc4'), [
+  it("allows to mark a check", function () {
+    assert.deepEqual(parseAlgebraic("Rd2+"), [
+      {
+        piece: "r",
+        from: "..",
+        to: "d2",
+      },
+    ]);
+  });
+
+  it("allows to mark a mate", function () {
+    assert.deepEqual(parseAlgebraic("Rd2#"), [
+      {
+        piece: "r",
+        from: "..",
+        to: "d2",
+      },
+    ]);
+  });
+
+  it("parses castling", function () {
+    assert.deepEqual(parseAlgebraic("o-o"), [
+      {
+        piece: "k",
+        from: "e1",
+        to: "g1",
+      },
+      {
+        piece: "k",
+        from: "e8",
+        to: "g8",
+      },
+    ]);
+
+    assert.deepEqual(parseAlgebraic("0-0"), [
+      {
+        piece: "k",
+        from: "e1",
+        to: "g1",
+      },
+      {
+        piece: "k",
+        from: "e8",
+        to: "g8",
+      },
+    ]);
+
+    assert.deepEqual(parseAlgebraic("ooo"), [
+      {
+        piece: "k",
+        from: "e1",
+        to: "c1",
+      },
+      {
+        piece: "k",
+        from: "e8",
+        to: "c8",
+      },
+    ]);
+
+    assert.deepEqual(parseAlgebraic("0-0-0"), [
+      {
+        piece: "k",
+        from: "e1",
+        to: "c1",
+      },
+      {
+        piece: "k",
+        from: "e8",
+        to: "c8",
+      },
+    ]);
+  });
+
+  it("ignores not-existing pieces and squares", function () {
+    assert.deepEqual(parseAlgebraic("Xd2"), []);
+  });
+
+  it("parses pawn promotion", function () {
+    assert.deepEqual(parseAlgebraic("d8=Q"), [
+      {
+        piece: "p",
+        from: "..",
+        to: "d8",
+        promotionPiece: "q",
+      },
+    ]);
+  });
+
+  it("ignores promotion for pieces", function () {
+    assert.deepEqual(parseAlgebraic("Nd8=Q"), []);
+  });
+
+  describe("allows lowercase piece letter if unambiguous", function () {
+    it("b3", function () {
+      assert.deepEqual(parseAlgebraic("b3"), [
         {
-          piece: 'p',
-          from: 'b.',
-          to: 'c4',
-        },
-        {
-          piece: 'b',
-          from: '..',
-          to: 'c4',
+          piece: "p",
+          from: "..",
+          to: "b3",
         },
       ]);
     });
-    it('bxb3', function () {
+    it("Bb3", function () {
+      assert.deepEqual(parseAlgebraic("Bb3"), [
+        {
+          piece: "b",
+          from: "..",
+          to: "b3",
+        },
+      ]);
+    });
+    it("bc4", function () {
+      assert.deepEqual(parseAlgebraic("bc4"), [
+        {
+          piece: "p",
+          from: "b.",
+          to: "c4",
+        },
+        {
+          piece: "b",
+          from: "..",
+          to: "c4",
+        },
+      ]);
+    });
+    it("bxb3", function () {
       // "From file" coordinate is redundant in case of a pawn move
       // Thus moves like that are interpreted as bishop moves
-      assert.deepEqual(parseAlgebraic('bxb3'), [
+      assert.deepEqual(parseAlgebraic("bxb3"), [
         {
-          piece: 'b',
-          from: '..',
-          to: 'b3',
+          piece: "b",
+          from: "..",
+          to: "b3",
         },
       ]);
     });
-    it('b2c3', function () {
+    it("b2c3", function () {
       // This looks like a UCI move. Let's parse it as UCI
-      assert.deepEqual(parseAlgebraic('b2c3'), []);
+      assert.deepEqual(parseAlgebraic("b2c3"), []);
     });
   });
 
-  it('returns null for UCI', function() {
-    assert.deepEqual(parseAlgebraic('e2e4'), []);
+  it("returns null for UCI", function () {
+    assert.deepEqual(parseAlgebraic("e2e4"), []);
   });
 
-  it('returns null for UCI with promotion', function() {
-    assert.deepEqual(parseAlgebraic('e7e8n'), []);
-  });
-});
-
-describe('parseUCI', function() {
-  it('parses short algebraic moves', function() {
-    assert.deepEqual(parseUCI('e2e4'), [{
-      piece: '.',
-      from: 'e2',
-      to: 'e4',
-    }]);
-  });
-
-  it('parses promotion', function() {
-    assert.deepEqual(parseUCI('e7e8n'), [{
-      piece: '.',
-      from: 'e7',
-      promotionPiece: 'n',
-      to: 'e8',
-    }]);
-  });
-
-  it('ignores non-existing squares', function() {
-    assert.deepEqual(parseUCI('x2e4'), []);
-  });
-
-  it('ignores other formats', function() {
-    assert.deepEqual(parseUCI('♞f3'), []);
+  it("returns null for UCI with promotion", function () {
+    assert.deepEqual(parseAlgebraic("e7e8n"), []);
   });
 });
 
-describe('parseMoveInput', function() {
-  it('parces algebraic', function() {
-    assert.deepEqual(parseMoveInput('Nf3'), [{
-      piece: 'n',
-      from: '..',
-      to: 'f3',
-    }]);
+describe("parseUCI", function () {
+  it("parses short algebraic moves", function () {
+    assert.deepEqual(parseUCI("e2e4"), [
+      {
+        piece: ".",
+        from: "e2",
+        to: "e4",
+      },
+    ]);
   });
 
-  it('parces UCI', function() {
-    assert.deepEqual(parseMoveInput('e2e4'), [{
-      piece: '.',
-      from: 'e2',
-      to: 'e4',
-    }]);
+  it("parses promotion", function () {
+    assert.deepEqual(parseUCI("e7e8n"), [
+      {
+        piece: ".",
+        from: "e7",
+        promotionPiece: "n",
+        to: "e8",
+      },
+    ]);
+  });
+
+  it("ignores non-existing squares", function () {
+    assert.deepEqual(parseUCI("x2e4"), []);
+  });
+
+  it("ignores other formats", function () {
+    assert.deepEqual(parseUCI("♞f3"), []);
   });
 });
 
-describe('getLegalMoves', function() {
-  interface IPiece { color: number, type: string, area: string };
+describe("parseMoveInput", function () {
+  it("parces algebraic", function () {
+    assert.deepEqual(parseMoveInput("Nf3"), [
+      {
+        piece: "n",
+        from: "..",
+        to: "f3",
+      },
+    ]);
+  });
 
-  const getChessBoardWithPieces = (input: IPiece[]) : IChessboard => {
+  it("parces UCI", function () {
+    assert.deepEqual(parseMoveInput("e2e4"), [
+      {
+        piece: ".",
+        from: "e2",
+        to: "e4",
+      },
+    ]);
+  });
+});
+
+describe("getLegalMoves", function () {
+  interface IPiece {
+    color: number;
+    type: string;
+    area: string;
+  }
+
+  const getChessBoardWithPieces = (input: IPiece[]): IChessboard => {
     const pieces: Record<string, IPiece> = {};
 
     input.forEach((p, i) => {
@@ -285,8 +322,9 @@ describe('getLegalMoves', function() {
       isLegalMove: () => true,
       isPlayersMove: () => true,
       getPiecesSetup: () => pieces,
-      getElement: () => document.createElement('div'),
-      getRelativeContainer: () => document.createElement('div'),
+      getElement: () => document.createElement("div"),
+      getRelativeContainer: () => document.createElement("div"),
+      getSquareAtMouseCoordinates: (mousePosition: MousePosition) => null,
       makeMove: (fromSq: TArea, toSq: TArea, promotionPiece?: string) => {},
       markArrow: (fromSq: TArea, toSq: TArea) => {},
       unmarkArrow: (fromSq: TArea, toSq: TArea) => {},
@@ -299,110 +337,130 @@ describe('getLegalMoves', function() {
     };
   };
 
-  it('returns from and to if these are explicitly specified', function() {
+  it("returns from and to if these are explicitly specified", function () {
     const board = getChessBoardWithPieces([
-      {color: 2, type: 'p', area: 'e2'},
+      { color: 2, type: "p", area: "e2" },
     ]);
-    const result = getLegalMoves(board, [{
-      piece: '.',
-      from: 'e2',
-      to: 'e4',
-    }]);
-
-    assert.deepEqual(result, [{
-      from: 'e2',
-      piece: '.',
-      to: 'e4',
-    }]);
-  });
-
-  it('handles partial matches', function() {
-    const board = getChessBoardWithPieces([
-      {color: 2, type: 'p', area: 'e2'},
-    ]);
-    const result = getLegalMoves(board, [{
-      piece: '.',
-      from: '.2',
-      to: 'e4',
-    }]);
-
-    assert.deepEqual(result, [{
-      from: 'e2',
-      piece: '.',
-      to: 'e4',
-    }]);
-  });
-
-  it('ignores ambiguous results', function() {
-    const board = getChessBoardWithPieces([
-      {color: 2, type: 'p', area: 'e2'},
-      {color: 2, type: 'p', area: 'c2'},
+    const result = getLegalMoves(board, [
+      {
+        piece: ".",
+        from: "e2",
+        to: "e4",
+      },
     ]);
 
-    const result = getLegalMoves(board, [{
-      piece: '.',
-      from: '.2',
-      to: 'e4',
-    }]);
-
-    assert.deepEqual(result, [{
-      from: 'e2',
-      piece: '.',
-      to: 'e4',
-    },
-    {
-      from: 'c2',
-      piece: '.',
-      to: 'e4',
-    }]);
+    assert.deepEqual(result, [
+      {
+        from: "e2",
+        piece: ".",
+        to: "e4",
+      },
+    ]);
   });
 
-  it('returns empty if there are no matching pieces', function() {
+  it("handles partial matches", function () {
+    const board = getChessBoardWithPieces([
+      { color: 2, type: "p", area: "e2" },
+    ]);
+    const result = getLegalMoves(board, [
+      {
+        piece: ".",
+        from: ".2",
+        to: "e4",
+      },
+    ]);
+
+    assert.deepEqual(result, [
+      {
+        from: "e2",
+        piece: ".",
+        to: "e4",
+      },
+    ]);
+  });
+
+  it("ignores ambiguous results", function () {
+    const board = getChessBoardWithPieces([
+      { color: 2, type: "p", area: "e2" },
+      { color: 2, type: "p", area: "c2" },
+    ]);
+
+    const result = getLegalMoves(board, [
+      {
+        piece: ".",
+        from: ".2",
+        to: "e4",
+      },
+    ]);
+
+    assert.deepEqual(result, [
+      {
+        from: "e2",
+        piece: ".",
+        to: "e4",
+      },
+      {
+        from: "c2",
+        piece: ".",
+        to: "e4",
+      },
+    ]);
+  });
+
+  it("returns empty if there are no matching pieces", function () {
     const board1 = getChessBoardWithPieces([
       // no pieces on 'from' spot
-      {color: 2, type: 'p', area: 'c2'},
+      { color: 2, type: "p", area: "c2" },
     ]);
-    const result1 = getLegalMoves(board1, [{
-      piece: '.',
-      from: 'e2',
-      to: 'e4',
-    }]);
+    const result1 = getLegalMoves(board1, [
+      {
+        piece: ".",
+        from: "e2",
+        to: "e4",
+      },
+    ]);
     assert.deepEqual(result1, []);
 
     const board2 = getChessBoardWithPieces([
       // piece of a different type
-      {color: 2, type: 'p', area: 'e2'},
+      { color: 2, type: "p", area: "e2" },
     ]);
-    const result2 = getLegalMoves(board2, [{
-      piece: 'r',
-      from: 'e2',
-      to: 'e4',
-    }]);
+    const result2 = getLegalMoves(board2, [
+      {
+        piece: "r",
+        from: "e2",
+        to: "e4",
+      },
+    ]);
     assert.deepEqual(result2, []);
   });
 
-  it('doesnt fail if input is falsy', function() {
+  it("doesnt fail if input is falsy", function () {
     const board = getChessBoardWithPieces([
-      {color: 2, type: 'p', area: 'c2'},
+      { color: 2, type: "p", area: "c2" },
     ]);
     assert.doesNotThrow(() => getLegalMoves(board, []));
   });
 
-  it('returns promotion piece properly', function() {
+  it("returns promotion piece properly", function () {
     const board = getChessBoardWithPieces([
-      {color: 2, type: 'p', area: 'd7'},
+      { color: 2, type: "p", area: "d7" },
     ]);
-    const result = getLegalMoves(board, [{
-      piece: 'p',
-      from: '..',
-      to: 'd8',
-      promotionPiece: 'q',
-    }]);
-    assert.deepEqual(result, [{
-      from: 'd7',
-      piece: 'p',
-      promotionPiece: 'q',
-      to: 'd8',
-    }]);
+    const result = getLegalMoves(board, [
+      {
+        piece: "p",
+        from: "..",
+        to: "d8",
+        promotionPiece: "q",
+      },
+    ]);
+    assert.deepEqual(result, [
+      {
+        from: "d7",
+        piece: "p",
+        promotionPiece: "q",
+        to: "d8",
+      },
+    ]);
   });
 });

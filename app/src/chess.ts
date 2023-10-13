@@ -1,16 +1,9 @@
-import filter from 'lodash/filter';
-import isEqual from 'lodash/isEqual';
-import find from 'lodash/find';
-import {
-  postMessage,
-  squareToCoords,
-} from './utils';
-import {
-  drawCache,
-} from './globals';
-import {
-  parseCommand,
-} from './commands';
+import filter from "lodash/filter";
+import isEqual from "lodash/isEqual";
+import find from "lodash/find";
+import { postMessage, squareToCoords } from "./utils";
+import { drawCache } from "./globals";
+import { parseCommand } from "./commands";
 import {
   IChessboard,
   TArea,
@@ -21,17 +14,18 @@ import {
   TFromTo,
   TMoveType,
   Nullable,
-} from './types';
-import { i18n } from './i18n';
+  KeyDirection,
+} from "./types";
+import { i18n } from "./i18n";
 
 /**
  * Check if input is valid square name
  */
-export function validateSquareName(input: string) : boolean {
+export function validateSquareName(input: string): boolean {
   return /^[a-h][1-8]$/.test(input);
 }
 
-const emptyDrawCache : { arrows: TFromTo[], areas: TArea[] } = {
+const emptyDrawCache: { arrows: TFromTo[]; areas: TArea[] } = {
   arrows: [],
   areas: [],
 };
@@ -41,7 +35,7 @@ const emptyDrawCache : { arrows: TFromTo[], areas: TArea[] } = {
  * Note that drawing is async,
  * otherwise it can be triggered during opponent's move
  */
-export function drawMovesOnBoard(board: IChessboard, inputText: string) : void {
+export function drawMovesOnBoard(board: IChessboard, inputText: string): void {
   if (!board) {
     return;
   }
@@ -88,7 +82,7 @@ export function drawMovesOnBoard(board: IChessboard, inputText: string) : void {
  * Handle user input and act in appropriate way
  * The function uses active board on the screen if there's any
  */
-export function go(board: IChessboard, input: string) : boolean {
+export function go(board: IChessboard, input: string): boolean {
   const command = parseCommand(input);
   if (command) {
     command();
@@ -103,12 +97,39 @@ export function go(board: IChessboard, input: string) : boolean {
 
     return true;
   } else if (moves.length > 1) {
-    postMessage(i18n('ambiguousMove', { move: input }));
+    postMessage(i18n("ambiguousMove", { move: input }));
   } else {
-    postMessage(i18n('incorrectMove', { move: input }));
+    postMessage(i18n("incorrectMove", { move: input }));
   }
 
   return false;
+}
+
+export function goKbAndMouse(
+  board: IChessboard,
+  targetSquare: TArea,
+  piece: TPiece,
+  direction: KeyDirection
+) {
+  console.log(
+    `targetSquare: ${targetSquare}, piece: ${piece}, direction: ${direction}`
+  );
+  const moves = getLegalMoves(board, [
+    {
+      piece: piece,
+      to: targetSquare,
+      from: "..",
+    },
+  ]);
+  console.log(moves);
+  if (moves.length === 1) {
+    const move = moves[0];
+    makeMove(board, move.from, move.to, move.promotionPiece);
+  } else if (moves.length > 1) {
+    postMessage(i18n("ambiguousMove", { move: targetSquare }));
+  } else {
+    postMessage(i18n("incorrectMove", { move: targetSquare }));
+  }
 }
 
 /**
@@ -119,26 +140,32 @@ export function makeMove(
   board: IChessboard,
   fromField: TArea,
   toField: TArea,
-  promotionPiece?: TPiece,
+  promotionPiece?: TPiece
 ) {
   if (board.isLegalMove(fromField, toField)) {
-      board.makeMove(fromField, toField, promotionPiece);
-      try {
-        board.submitDailyMove();
-      } catch(e) {
-        console.log(e);
-      }
+    board.makeMove(fromField, toField, promotionPiece);
+    try {
+      board.submitDailyMove();
+    } catch (e) {
+      console.log(e);
+    }
   } else {
-    const move = fromField + '-' + toField;
-    postMessage(i18n('illegalMove', { move }));
+    const move = fromField + "-" + toField;
+    postMessage(i18n("illegalMove", { move }));
   }
 }
 
 /**
  * Get exact from and to coords from move data
  */
-export function getLegalMoves(board: IChessboard, potentialMoves: IPotentialMoves) : IMove[] {
+export function getLegalMoves(
+  board: IChessboard,
+  potentialMoves: IPotentialMoves
+): IMove[] {
   if (!board || !potentialMoves.length || !board.isPlayersMove()) {
+    console.log(
+      `!board: ${!board}, !potentialMoves.length: ${!potentialMoves.length}, !board.isPlayersMove(): ${!board.isPlayersMove()}`
+    );
     return [];
   }
 
@@ -150,14 +177,17 @@ export function getLegalMoves(board: IChessboard, potentialMoves: IPotentialMove
 
     const matchingPieces = filter(pieces, (p) => {
       // Treat promotion moves without "promotionPiece" as invalid
-      if (
-        p.type === 'p' &&
-        [1, 8].includes(toYCoord) &&
-        !move.promotionPiece
-      ) {
+      if (p.type === "p" && [1, 8].includes(toYCoord) && !move.promotionPiece) {
         return false;
       }
 
+      console.log(p);
+      const condition1 = new RegExp(`^${move.piece}$`).test(p.type);
+      const condition2 = new RegExp(`^${move.from}$`).test(p.area);
+      const condition3 = board.isLegalMove(p.area, move.to);
+      console.log(
+        `Condition 1: ${condition1}, Condition 2: ${condition2}, Condition 3: ${condition3}`
+      );
       return (
         // RegExp is required, because move.piece/move.from aren't always there
         // It might be just ".", meaning "any piece" (imagine move like "e2e4")
@@ -183,13 +213,16 @@ export function getLegalMoves(board: IChessboard, potentialMoves: IPotentialMove
  * Exclude moves conflicting between each other for whatever reasons
  * (some exceptions)
  */
-export function excludeConflictingMoves(moves: IMove[]) : IMove[] {
-  const piecesString = moves.map(m => m.piece).sort().join('');
-  if (piecesString === 'bp') {
+export function excludeConflictingMoves(moves: IMove[]): IMove[] {
+  const piecesString = moves
+    .map((m) => m.piece)
+    .sort()
+    .join("");
+  if (piecesString === "bp") {
     // Bishop and pawn conflict
     // Pawn is preferred in this case
     // @see https://github.com/everyonesdesign/Chess-Helper/issues/51
-    const pawnMove = moves.find(m => m.piece === 'p') as IMove;
+    const pawnMove = moves.find((m) => m.piece === "p") as IMove;
     return [pawnMove];
   }
 
@@ -200,24 +233,21 @@ export function excludeConflictingMoves(moves: IMove[]) : IMove[] {
  * Parse message input by user
  */
 export function parseMoveInput(input: string): IPotentialMoves {
-  return [
-    ...parseUCI(input),
-    ...parseAlgebraic(input),
-  ];
+  return [...parseUCI(input), ...parseAlgebraic(input)];
 }
 
 /**
  * Parse simplest move format: 'e2e4'
  */
-export function parseUCI(input: string) : IPotentialMoves {
-  const filteredSymbols = input.replace(/( |-)+/g, '');
+export function parseUCI(input: string): IPotentialMoves {
+  const filteredSymbols = input.replace(/( |-)+/g, "");
   const fromSquare = <TArea>filteredSymbols.slice(0, 2);
   const toSquare = <TArea>filteredSymbols.slice(2, 4);
   const promotion = <TPiece>filteredSymbols.slice(4, 5);
 
   if (validateSquareName(fromSquare) && validateSquareName(toSquare)) {
     const result: IMoveTemplate = {
-      piece: '.',
+      piece: ".",
       from: fromSquare,
       to: toSquare,
     };
@@ -241,63 +271,56 @@ export function parseAlgebraic(input: string): IPotentialMoves {
     return [];
   }
 
-  let moveString = input.replace(/[\s\-\(\)]+/g, '');
+  let moveString = input.replace(/[\s\-\(\)]+/g, "");
   const moves: IPotentialMoves = [];
 
   if (/[o0][o0][o0]/i.test(moveString)) {
     return [
       // white long castling
       {
-        piece: 'k',
-        from: 'e1',
-        to: 'c1',
+        piece: "k",
+        from: "e1",
+        to: "c1",
       },
       // black long castling
       {
-        piece: 'k',
-        from: 'e8',
-        to: 'c8',
-      }
+        piece: "k",
+        from: "e8",
+        to: "c8",
+      },
     ];
   } else if (/[o0][o0]/i.test(moveString)) {
     return [
       // white short castling
       {
-        piece: 'k',
-        from: 'e1',
-        to: 'g1',
+        piece: "k",
+        from: "e1",
+        to: "g1",
       },
       // black short castling
       {
-        piece: 'k',
-        from: 'e8',
-        to: 'g8',
-      }
+        piece: "k",
+        from: "e8",
+        to: "g8",
+      },
     ];
   }
 
-
-  const pawnRegex = /^([a-h])?(x)?([a-h])([1-8])(e\.?p\.?)?(=[qrnbQRNB])?[+#]?$/;
+  const pawnRegex =
+    /^([a-h])?(x)?([a-h])([1-8])(e\.?p\.?)?(=[qrnbQRNB])?[+#]?$/;
   const pawnResult = moveString.match(pawnRegex);
   if (pawnResult) {
-    const [
-      _,
-      fromFile,
-      isCapture,
-      toFile,
-      toRank,
-      enPassant,
-      promotion,
-    ] = pawnResult;
+    const [_, fromFile, isCapture, toFile, toRank, enPassant, promotion] =
+      pawnResult;
 
     if (fromFile === toFile) {
       // Do nothing
       // This disables moves like `bb4` for pawns to avoid ambiguity with bishops
     } else {
       const move: IMoveTemplate = {
-        piece: 'p',
-        from: <TArea>`${fromFile || '.'}.`,
-        to: <TArea>`${toFile || '.'}${toRank || '.'}`,
+        piece: "p",
+        from: <TArea>`${fromFile || "."}.`,
+        to: <TArea>`${toFile || "."}${toRank || "."}`,
       };
 
       if (promotion) {
@@ -311,20 +334,13 @@ export function parseAlgebraic(input: string): IPotentialMoves {
   const pieceRegex = /^([RQKNBrqknb])([a-h])?([1-8])?(x)?([a-h])([1-8])?[+#]?$/;
   const pieceResult = moveString.match(pieceRegex);
   if (pieceResult) {
-    const [
-      _,
-      pieceName,
-      fromFile,
-      fromVer,
-      isCapture,
-      toFile,
-      toRank,
-    ] = pieceResult;
+    const [_, pieceName, fromFile, fromVer, isCapture, toFile, toRank] =
+      pieceResult;
 
     moves.push({
-      piece: <TPiece>(pieceName).toLowerCase(),
-      from: <TArea>`${fromFile || '.'}${fromVer || '.'}`,
-      to: <TArea>`${toFile || '.'}${toRank || '.'}`,
+      piece: <TPiece>pieceName.toLowerCase(),
+      from: <TArea>`${fromFile || "."}${fromVer || "."}`,
+      to: <TArea>`${toFile || "."}${toRank || "."}`,
     });
   }
 

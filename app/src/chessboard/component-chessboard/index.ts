@@ -1,38 +1,32 @@
-import find from 'lodash/find';
+import find from "lodash/find";
 import {
   IChessboard,
   TArea,
   IMoveDetails,
-} from '../../types';
-import {
-  IGame,
-  TElementWithGame,
-  IMoveEvent,
-} from './types';
-import {
-  squareToCoords,
-  ALL_AREAS,
-} from '../../utils';
-import {
-  dispatchPointerEvent,
-} from '../../dom-events';
+  Nullable,
+  MousePosition,
+} from "../../types";
+import { IGame, TElementWithGame, IMoveEvent } from "./types";
+import { squareToCoords, ALL_AREAS } from "../../utils";
+import { dispatchPointerEvent } from "../../dom-events";
+import { getSquareAtMouseCoordinates } from "..";
 
-const ERROR_AREA_COLOR = '#ff4444';
+const ERROR_AREA_COLOR = "#ff4444";
 
 /**
  * Chessboard implemented with some kinds of web components
  * Beta in April 2020
  */
 export class ComponentChessboard implements IChessboard {
-  element: TElementWithGame
-  game: IGame
+  element: TElementWithGame;
+  game: IGame;
 
   constructor(element: Element) {
     this.element = <TElementWithGame>element;
     this.game = this.element.game;
 
-    this.game.on('Move', () => {
-      const event = new Event('ccHelper-draw');
+    this.game.on("Move", () => {
+      const event = new Event("ccHelper-draw");
       document.dispatchEvent(event);
     });
   }
@@ -45,6 +39,10 @@ export class ComponentChessboard implements IChessboard {
     return this.element;
   }
 
+  getSquareAtMouseCoordinates(mousePosition: MousePosition): Nullable<TArea> {
+    return getSquareAtMouseCoordinates(this, this.game, mousePosition);
+  }
+
   makeMove(fromSq: TArea, toSq: TArea, promotionPiece?: string) {
     const move = { from: fromSq, to: toSq };
 
@@ -52,8 +50,14 @@ export class ComponentChessboard implements IChessboard {
     if (!promotionPiece) {
       const fromPosition = this._getSquarePosition(fromSq);
       const toPosition = this._getSquarePosition(toSq);
-      dispatchPointerEvent(this.element, 'pointerdown', { x: fromPosition.x, y: fromPosition.y });
-      dispatchPointerEvent(this.element, 'pointerup', { x: toPosition.x, y: toPosition.y });
+      dispatchPointerEvent(this.element, "pointerdown", {
+        x: fromPosition.x,
+        y: fromPosition.y,
+      });
+      dispatchPointerEvent(this.element, "pointerup", {
+        x: toPosition.x,
+        y: toPosition.y,
+      });
     }
 
     try {
@@ -61,9 +65,9 @@ export class ComponentChessboard implements IChessboard {
         ...move,
         promotion: promotionPiece,
         animate: false,
-        userGenerated: true
+        userGenerated: true,
       });
-    } catch(e) {
+    } catch (e) {
       // this.game.move throws an error on such a call
       // not catching the error causes the field not to be cleaned up
       // @TODO understand why the error is thrown
@@ -76,7 +80,7 @@ export class ComponentChessboard implements IChessboard {
   }
 
   isPlayersMove() {
-    if (this.game.getMode().name === 'analysis') {
+    if (this.game.getMode().name === "analysis") {
       return true;
     }
 
@@ -89,19 +93,26 @@ export class ComponentChessboard implements IChessboard {
 
   getPiecesSetup() {
     const pieces = this.game.getPieces().getCollection();
-    return Object.values(pieces).reduce((acc, piece) => ({
-      ...acc,
-      [piece.square]: {
-        color: piece.color, type: piece.type, area: piece.square
-      }
-    }), {});
+    return Object.values(pieces).reduce(
+      (acc, piece) => ({
+        ...acc,
+        [piece.square]: {
+          color: piece.color,
+          type: piece.type,
+          area: piece.square,
+        },
+      }),
+      {}
+    );
   }
 
   markArrow(fromSq: TArea, toSq: TArea) {
     const arrowCoords = `${fromSq}${toSq}`;
     const markings = this.game.getMarkings();
     if (!markings.arrow[arrowCoords]) {
-      this.game.toggleMarking({ arrow: { color: 'd', from: fromSq, to: toSq }});
+      this.game.toggleMarking({
+        arrow: { color: "d", from: fromSq, to: toSq },
+      });
     }
 
     // legacy call, probably can be removed in the future
@@ -109,8 +120,8 @@ export class ComponentChessboard implements IChessboard {
       const markings = this.game.getMarkings();
       if (!markings.arrow[arrowCoords]) {
         try {
-          this.game.toggleMarking({ key: arrowCoords, type: 'arrow' });
-        } catch(e) {}
+          this.game.toggleMarking({ key: arrowCoords, type: "arrow" });
+        } catch (e) {}
       }
     });
   }
@@ -119,7 +130,9 @@ export class ComponentChessboard implements IChessboard {
     const arrowCoords = `${fromSq}${toSq}`;
     const markings = this.game.getMarkings();
     if (markings.arrow[arrowCoords]) {
-      this.game.toggleMarking({ arrow: { color: 'd', from: fromSq, to: toSq }});
+      this.game.toggleMarking({
+        arrow: { color: "d", from: fromSq, to: toSq },
+      });
     }
 
     // legacy call, probably can be removed in the future
@@ -127,8 +140,8 @@ export class ComponentChessboard implements IChessboard {
       const markings = this.game.getMarkings();
       if (markings.arrow[arrowCoords]) {
         try {
-          this.game.toggleMarking({ key: arrowCoords, type: 'arrow' });
-        } catch(e) {}
+          this.game.toggleMarking({ key: arrowCoords, type: "arrow" });
+        } catch (e) {}
       }
     });
   }
@@ -145,7 +158,7 @@ export class ComponentChessboard implements IChessboard {
   markArea(square: TArea) {
     const markings = this.game.getMarkings();
     if (!markings.square[square]) {
-      this.game.toggleMarking({ square: { color: ERROR_AREA_COLOR, square }});
+      this.game.toggleMarking({ square: { color: ERROR_AREA_COLOR, square } });
     }
 
     // legacy call, probably can be removed in the future
@@ -153,8 +166,8 @@ export class ComponentChessboard implements IChessboard {
       const markings = this.game.getMarkings();
       if (!markings.square[square]) {
         try {
-          this.game.toggleMarking({ key: square, type: 'square' });
-        } catch(e) {}
+          this.game.toggleMarking({ key: square, type: "square" });
+        } catch (e) {}
       }
     });
   }
@@ -162,7 +175,7 @@ export class ComponentChessboard implements IChessboard {
   unmarkArea(square: TArea) {
     const markings = this.game.getMarkings();
     if (markings.square[square]) {
-      this.game.toggleMarking({ square: { color: ERROR_AREA_COLOR, square }});
+      this.game.toggleMarking({ square: { color: ERROR_AREA_COLOR, square } });
     }
 
     // legacy call, probably can be removed in the future
@@ -170,8 +183,8 @@ export class ComponentChessboard implements IChessboard {
       const markings = this.game.getMarkings();
       if (markings.square[square]) {
         try {
-          this.game.toggleMarking({ key: square, type: 'square' });
-        } catch(e) {}
+          this.game.toggleMarking({ key: square, type: "square" });
+        } catch (e) {}
       }
     });
   }
@@ -188,21 +201,23 @@ export class ComponentChessboard implements IChessboard {
   }
 
   submitDailyMove() {
-    const dailyComponent = document.querySelector('.daily-game-footer-component');
+    const dailyComponent = document.querySelector(
+      ".daily-game-footer-component"
+    );
     if (dailyComponent) {
-        (<any>dailyComponent).__vue__.$emit('save-move');
+      (<any>dailyComponent).__vue__.$emit("save-move");
     }
   }
 
   _getMoveData(event: IMoveEvent): IMoveDetails {
     const data = event.data.move;
-    let moveType = 'move';
-    if (data.san.startsWith('O-O-O')) {
-      moveType = 'long-castling';
-    } else if (data.san.startsWith('O-O')) {
-      moveType = 'short-castling';
+    let moveType = "move";
+    if (data.san.startsWith("O-O-O")) {
+      moveType = "long-castling";
+    } else if (data.san.startsWith("O-O")) {
+      moveType = "short-castling";
     } else if (data.capturedStr) {
-      moveType = 'capture';
+      moveType = "capture";
     }
 
     return {
@@ -219,7 +234,7 @@ export class ComponentChessboard implements IChessboard {
   _getSquarePosition(square: TArea, fromDoc: boolean = true) {
     const isFlipped = this.element.game.getOptions().flipped;
     const coords = squareToCoords(square);
-    const {left, top, width} = this.element.getBoundingClientRect();
+    const { left, top, width } = this.element.getBoundingClientRect();
     const squareWidth = width / 8;
     const correction = squareWidth / 2;
 

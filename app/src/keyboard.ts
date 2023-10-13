@@ -1,17 +1,8 @@
-import {
-  go,
-} from './chess';
-import {
-  getBoard,
-} from './chessboard';
-import {
-  holdingCtrlOrCmd,
-  isEditable,
-  isModifierPressed,
-} from './utils';
-import {
-  Nullable,
-} from './types';
+import { go, goKbAndMouse } from "./chess";
+import { getBoard } from "./chessboard";
+import { holdingCtrlOrCmd, isEditable, isModifierPressed } from "./utils";
+import { Nullable, KeyDirection } from "./types";
+import { getMousePosition } from "./mouse";
 
 const KEY_CODES = {
   enter: 13,
@@ -21,12 +12,13 @@ const KEY_CODES = {
   bottomArrow: 40,
   escape: 27,
 };
+const GAME_KEYS = ["q", "w", "e", "a", "s", "d", "z", "x", "c", " ", "Shift"];
 
 /**
  * Bind hotkeys connected with focusing of the input
  */
 export function bindInputFocus(input: HTMLInputElement) {
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener("keydown", (e) => {
     if (isModifierPressed(e)) {
       // prevent native events from being prevented
       // e.g. Ctrl + C
@@ -57,7 +49,7 @@ export function bindInputFocus(input: HTMLInputElement) {
  * Responsible for submitting move, backward/forward moves, etc.
  */
 export function bindInputKeyDown(input: HTMLInputElement) {
-  input.addEventListener('keydown', (e) => {
+  input.addEventListener("keydown", (e) => {
     e.stopPropagation();
 
     if (e.keyCode === KEY_CODES.enter) {
@@ -72,12 +64,12 @@ export function bindInputKeyDown(input: HTMLInputElement) {
         board && board.clearMarkedArrows();
 
         if (success) {
-          input.value = '';
+          input.value = "";
 
           // needed to remove autocomplete
           // after successful command execution
           setTimeout(() => {
-            const event = new Event('keyup');
+            const event = new Event("keyup");
             input.dispatchEvent(event);
           }, 200);
         }
@@ -85,7 +77,7 @@ export function bindInputKeyDown(input: HTMLInputElement) {
 
       input.focus();
     } else if (e.keyCode === KEY_CODES.escape) {
-      input.value = '';
+      input.value = "";
 
       const board = getBoard();
       board && board.clearAllMarkings();
@@ -124,13 +116,83 @@ export function bindInputKeyDown(input: HTMLInputElement) {
  */
 export function bindBlindFoldPeek(input: HTMLInputElement) {
   const updatePeekClass = (e: KeyboardEvent) => {
-    document.body.classList.toggle('ccHelper-docBody--peeked', !!e.ctrlKey);
+    document.body.classList.toggle("ccHelper-docBody--peeked", !!e.ctrlKey);
   };
-  document.body.addEventListener('keydown', updatePeekClass);
-  document.body.addEventListener('keyup', updatePeekClass);
+  document.body.addEventListener("keydown", updatePeekClass);
+  document.body.addEventListener("keyup", updatePeekClass);
 
   // input stops events propagation, so that's why
   // we want to duplicate these listeners
-  input.addEventListener('keydown', updatePeekClass);
-  input.addEventListener('keyup', updatePeekClass);
+  input.addEventListener("keydown", updatePeekClass);
+  input.addEventListener("keyup", updatePeekClass);
+}
+
+/**
+ * Bind keyboard listeners to the actual chess board itself to process moves
+ * @param boardElement The chess board element
+ */
+export function bindBoardKeyDown(boardElement: HTMLElement) {
+  boardElement.addEventListener("keydown", (e) => {
+    if (!GAME_KEYS.includes(e.key)) {
+      return;
+    }
+
+    const board = getBoard();
+    if (!board) {
+      return;
+    }
+
+    const targetSquare = board.getSquareAtMouseCoordinates(getMousePosition());
+    if (!targetSquare) {
+      return;
+    }
+
+    let piece = null;
+    let direction = KeyDirection.GENERAL;
+    switch (e.key) {
+      case "q":
+        piece = "p";
+        direction = KeyDirection.LEFT;
+        break;
+      case "w":
+        piece = "p";
+        break;
+      case "e":
+        piece = "p";
+        direction = KeyDirection.RIGHT;
+        break;
+      case "a":
+        piece = "b";
+        break;
+      case "s":
+        piece = "n";
+        break;
+      case "d":
+        piece = "n";
+        direction = KeyDirection.RIGHT;
+        break;
+      case "z":
+        piece = "r";
+        break;
+      case "x":
+        piece = "r";
+        direction = KeyDirection.RIGHT;
+        break;
+      case "c":
+        piece = "q";
+        direction = KeyDirection.RIGHT;
+        break;
+      case " ":
+        piece = "q";
+        break;
+      case "Shift":
+        piece = "k";
+        break;
+    }
+
+    if (!piece) {
+      throw new Error(`No piece found. Key pressed: '${e.key}'`);
+    }
+    goKbAndMouse(board, targetSquare, piece, direction);
+  });
 }

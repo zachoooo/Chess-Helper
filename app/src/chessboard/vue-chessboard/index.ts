@@ -1,57 +1,61 @@
-import svg, { Library, Marker } from 'svg.js';
-import get from 'lodash/get';
+import svg, { Library, Marker } from "svg.js";
+import get from "lodash/get";
 import {
   squareToCoords,
   coordsToSquare,
   RED_SQUARE_COLOR,
   ALL_AREAS,
-} from '../../utils';
+} from "../../utils";
 import {
   AnyFunction,
   IChessboard,
   TArea,
   IMoveDetails,
-} from '../../types';
+  MousePosition,
+  Nullable,
+} from "../../types";
 import {
   TElementWithVueChessboard,
   IVueChessboardStore,
   IPiece,
-} from './types';
+} from "./types";
 
 /**
  * Chessboard implemented with Vue.JS
  * Beta in August 2018
  */
 export class VueChessboard implements IChessboard {
-  element: TElementWithVueChessboard
-  store: IVueChessboardStore
-  viewSize: number
-  arrowEnd: any
-  drawArrows: Library["Doc"]
-  drawAreas: Library["Doc"]
+  element: TElementWithVueChessboard;
+  store: IVueChessboardStore;
+  viewSize: number;
+  arrowEnd: any;
+  drawArrows: Library["Doc"];
+  drawAreas: Library["Doc"];
 
   constructor(element: Element) {
     this.element = <TElementWithVueChessboard>element;
     this.store = this.element.__vue__;
 
-    this.element.classList.add('ccHelper-board--inited');
+    this.element.classList.add("ccHelper-board--inited");
 
     this.viewSize = this.element.clientWidth;
 
     this.drawArrows = svg(this.element.id);
-    this.drawArrows.node.classList.add('ccHelper-customArrows');
+    this.drawArrows.node.classList.add("ccHelper-customArrows");
     this.drawArrows.viewbox(0, 0, this.viewSize, this.viewSize);
-    this.arrowEnd = this.drawArrows.marker(4, 4, function(this: Marker, add) {
-      add.polygon('0,0 0,4 4,2').fill('orange').opacity(1);
-      this.ref(0, 2);
-    }).size(3, 3);
+    this.arrowEnd = this.drawArrows
+      .marker(4, 4, function (this: Marker, add) {
+        add.polygon("0,0 0,4 4,2").fill("orange").opacity(1);
+        this.ref(0, 2);
+      })
+      .size(3, 3);
 
     this.drawAreas = svg(this.element.id);
-    this.drawAreas.node.classList.add('ccHelper-customAreas');
+    this.drawAreas.node.classList.add("ccHelper-customAreas");
     this.drawAreas.viewbox(0, 0, this.viewSize, this.viewSize);
 
     setInterval(() => {
-      const event = new Event('ccHelper-draw');
+      const event = new Event("ccHelper-draw");
       document.dispatchEvent(event);
     }, 200);
   }
@@ -64,10 +68,14 @@ export class VueChessboard implements IChessboard {
     return this.element;
   }
 
+  getSquareAtMouseCoordinates(mousePosition: MousePosition): Nullable<TArea> {
+    return null;
+  }
+
   makeMove(fromSq: TArea, toSq: TArea, promotionPiece?: string) {
     const [fromFile, fromRank] = squareToCoords(fromSq);
     const [toFile, toRank] = squareToCoords(toSq);
-    this.store.chessboard.emit('MOVE_MADE', {
+    this.store.chessboard.emit("MOVE_MADE", {
       from: {
         file: fromFile,
         rank: fromRank,
@@ -76,20 +84,20 @@ export class VueChessboard implements IChessboard {
         file: toFile,
         rank: toRank,
         altKey: false,
-        isRightClick: false
+        isRightClick: false,
       },
       isIllegal: false,
-      promotion: promotionPiece ? promotionPiece : undefined
+      promotion: promotionPiece ? promotionPiece : undefined,
     });
   }
 
   isLegalMove(fromSq: TArea, toSq: TArea) {
-    const {legalMoves} = this.store.chessboard.state;
+    const { legalMoves } = this.store.chessboard.state;
     return legalMoves.some((m) => m.from === fromSq && m.to === toSq);
   }
 
   isPlayersMove() {
-    const {playingAs, sideToMove, gameSettings} = this.store.chessboard.state;
+    const { playingAs, sideToMove, gameSettings } = this.store.chessboard.state;
 
     if (gameSettings.analysis === true) {
       return true;
@@ -103,11 +111,12 @@ export class VueChessboard implements IChessboard {
   }
 
   getPiecesSetup() {
-    const piecesElements = Array.from(this.element.querySelectorAll('.piece'));
-    const pieces: Record<string, { color: number, type: string, area: TArea }> = {};
+    const piecesElements = Array.from(this.element.querySelectorAll(".piece"));
+    const pieces: Record<string, { color: number; type: string; area: TArea }> =
+      {};
 
     piecesElements.forEach((el, index) => {
-      const background = el.getAttribute('style');
+      const background = el.getAttribute("style");
 
       if (background) {
         const color = /b.\.png"/.test(background) ? 2 : 1;
@@ -119,7 +128,7 @@ export class VueChessboard implements IChessboard {
 
           if (areaMatch) {
             const area = coordsToSquare(areaMatch[1]);
-            pieces[index] = {color, type, area};
+            pieces[index] = { color, type, area };
           }
         }
       }
@@ -143,8 +152,8 @@ export class VueChessboard implements IChessboard {
 
     const compensationSize = elementWidth / 32; // half of a square
     const compensation = {
-      x: {start: 0, end: 0},
-      y: {start: 0, end: 0},
+      x: { start: 0, end: 0 },
+      y: { start: 0, end: 0 },
     };
 
     if (fromPosition.x < toPosition.x) {
@@ -168,18 +177,18 @@ export class VueChessboard implements IChessboard {
         fromPosition.x / sizeRatio + compensation.x.start,
         fromPosition.y / sizeRatio + compensation.y.start,
         toPosition.x / sizeRatio + compensation.x.end,
-        toPosition.y / sizeRatio + compensation.y.end,
+        toPosition.y / sizeRatio + compensation.y.end
       )
       .stroke({
         width: elementWidth / 55,
-        color: 'orange',
+        color: "orange",
         opacity: 1,
       });
 
     this.drawArrows.add(line);
     line.id(lineId);
 
-    line.marker('end', this.arrowEnd);
+    line.marker("end", this.arrowEnd);
   }
 
   unmarkArrow(fromSq: TArea, toSq: TArea) {
@@ -192,8 +201,8 @@ export class VueChessboard implements IChessboard {
 
   clearMarkedArrows() {
     this.drawArrows.each((i, item) => {
-      const id = get(item, '0.node.id');
-      if (id && id.startsWith('ccHelper-arrow-')) {
+      const id = get(item, "0.node.id");
+      if (id && id.startsWith("ccHelper-arrow-")) {
         svg.get(id).remove();
       }
     });
@@ -207,13 +216,11 @@ export class VueChessboard implements IChessboard {
     const elementWidth = this.element.clientWidth / sizeRatio;
     const squareWidth = elementWidth / 8;
 
-    const rect = this.drawAreas
-      .rect(squareWidth, squareWidth)
-      .attr({
-        x: position.x - squareWidth / 2,
-        y: position.y - squareWidth / 2,
-        fill: RED_SQUARE_COLOR,
-      });
+    const rect = this.drawAreas.rect(squareWidth, squareWidth).attr({
+      x: position.x - squareWidth / 2,
+      y: position.y - squareWidth / 2,
+      fill: RED_SQUARE_COLOR,
+    });
 
     this.drawAreas.add(rect);
     rect.id(rectId);
@@ -239,9 +246,9 @@ export class VueChessboard implements IChessboard {
   }
 
   _getSquarePosition(square: TArea, fromDoc: boolean = true) {
-    const isFlipped = this.element.classList.contains('flipped');
+    const isFlipped = this.element.classList.contains("flipped");
     const coords = squareToCoords(square);
-    const {left, top, width} = this.element.getBoundingClientRect();
+    const { left, top, width } = this.element.getBoundingClientRect();
     const squareWidth = width / 8;
     const correction = squareWidth / 2;
 

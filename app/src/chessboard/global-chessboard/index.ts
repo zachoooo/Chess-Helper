@@ -1,40 +1,35 @@
-import get from 'lodash/get';
-import {
-  RED_SQUARE_COLOR,
-  ALL_AREAS,
-} from '../../utils';
+import get from "lodash/get";
+import { RED_SQUARE_COLOR, ALL_AREAS } from "../../utils";
 import {
   Nullable,
   IChessboard,
   TArea,
   IMoveDetails,
-} from '../../types';
-import {
-  IOnRefreshEvent,
-  IChessBoard,
-  TElementWithChessboard,
-} from './types';
+  MousePosition,
+} from "../../types";
+import { IOnRefreshEvent, IChessBoard, TElementWithChessboard } from "./types";
+import { getSquareAtMouseCoordinates } from "..";
 
 /**
  * Global chessboard
  */
 export class GlobalChessboard implements IChessboard {
-  element: TElementWithChessboard
-  board : IChessBoard
+  element: TElementWithChessboard;
+  board: IChessBoard;
 
   constructor(element: Element) {
     this.element = <TElementWithChessboard>element;
     this.board = this.element.chessBoard;
 
-    this.element.classList.add('ccHelper-board--inited');
+    this.element.classList.add("ccHelper-board--inited");
 
     const emitDraw = () => {
-      const event = new Event('ccHelper-draw');
+      const event = new Event("ccHelper-draw");
       document.dispatchEvent(event);
     };
-    this.board.attachEvent('onDropPiece', emitDraw);
-    this.board.attachEvent('onAfterMoveAnimated', emitDraw);
-    this.board.attachEvent('onRefresh', emitDraw);
+    this.board.attachEvent("onDropPiece", emitDraw);
+    this.board.attachEvent("onAfterMoveAnimated", emitDraw);
+    this.board.attachEvent("onRefresh", emitDraw);
   }
 
   getElement() {
@@ -42,12 +37,18 @@ export class GlobalChessboard implements IChessboard {
   }
 
   getRelativeContainer() {
-    return Array.from(this.element.children).filter((c) => c.matches('[id*=boardarea]'))[0];
+    return Array.from(this.element.children).filter((c) =>
+      c.matches("[id*=boardarea]")
+    )[0];
+  }
+
+  getSquareAtMouseCoordinates(mousePosition: MousePosition): Nullable<TArea> {
+    return null;
   }
 
   makeMove(fromSq: TArea, toSq: TArea, promotionPiece?: string) {
     this.board._clickedPieceElement = fromSq;
-    this.board.fireEvent('onDropPiece', {
+    this.board.fireEvent("onDropPiece", {
       fromAreaId: fromSq,
       targetAreaId: toSq,
     });
@@ -62,7 +63,7 @@ export class GlobalChessboard implements IChessboard {
   }
 
   isPlayersMove() {
-    if (this.element && this.element.closest('.cursor-spin')) {
+    if (this.element && this.element.closest(".cursor-spin")) {
       return false;
     }
 
@@ -70,7 +71,7 @@ export class GlobalChessboard implements IChessboard {
       return false;
     }
 
-    const sideToMove = get(this.board, 'gameSetup.flags.sm');
+    const sideToMove = get(this.board, "gameSetup.flags.sm");
     const playerSide = this.board._player;
     if (sideToMove && playerSide && sideToMove !== playerSide) {
       return false;
@@ -80,7 +81,7 @@ export class GlobalChessboard implements IChessboard {
   }
 
   getPiecesSetup() {
-    return get(this.board, 'gameSetup.pieces', []);
+    return get(this.board, "gameSetup.pieces", []);
   }
 
   markArrow(fromSq: TArea, toSq: TArea) {
@@ -117,23 +118,25 @@ export class GlobalChessboard implements IChessboard {
   }
 
   implementPromotion(pieceType: string) {
-    const style = document.createElement('style');
-    style.id='chessHelper__hidePromotionArea';
-    style.innerHTML = '.promotion-area, .promotion-menu {opacity: .0000001}';
+    const style = document.createElement("style");
+    style.id = "chessHelper__hidePromotionArea";
+    style.innerHTML = ".promotion-area, .promotion-menu {opacity: .0000001}";
     document.body.appendChild(style);
 
     /**
      * Click element asynchronously
      * because otherwise the promotion area won't be in time to be shown
      */
-    setTimeout(function() {
-      const promotionArea = <Nullable<HTMLElement>>document.querySelector('.promotion-area, .promotion-menu');
-      if (promotionArea && promotionArea.style.display !== 'none') {
+    setTimeout(function () {
+      const promotionArea = <Nullable<HTMLElement>>(
+        document.querySelector(".promotion-area, .promotion-menu")
+      );
+      if (promotionArea && promotionArea.style.display !== "none") {
         const selector = `[piece="${pieceType}"], [data-type="${pieceType}"]`;
         const target = promotionArea.querySelector(selector);
 
         if (target) {
-          const clickEvent = new MouseEvent('click', {
+          const clickEvent = new MouseEvent("click", {
             view: window,
             bubbles: true,
             cancelable: true,
