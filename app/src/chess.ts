@@ -111,9 +111,9 @@ export function goKbAndMouse(
   piece: TPiece,
   direction: KeyDirection
 ) {
-  console.log(
-    `targetSquare: ${targetSquare}, piece: ${piece}, direction: ${direction}`
-  );
+  const moveString = (piece: TPiece, targetSquare: TArea) => {
+    return piece === "p" ? targetSquare : piece.toUpperCase() + targetSquare;
+  };
   const moves = getLegalMoves(board, [
     {
       piece: piece,
@@ -134,10 +134,14 @@ export function goKbAndMouse(
     if (move) {
       makeMove(board, move.from, move.to, move.promotionPiece);
     } else {
-      postMessage(i18n("ambiguousMove", { move: targetSquare }));
+      postMessage(
+        i18n("ambiguousMove", { move: moveString(piece, targetSquare) })
+      );
     }
   } else {
-    postMessage(i18n("incorrectMove", { move: targetSquare }));
+    postMessage(
+      i18n("incorrectMove", { move: moveString(piece, targetSquare) })
+    );
   }
 }
 

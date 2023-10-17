@@ -136,6 +136,8 @@ export function bindBoardKeyDown(boardElement: HTMLElement) {
     if (!GAME_KEYS.includes(e.key)) {
       return;
     }
+    e.preventDefault();
+    e.stopPropagation();
 
     const board = getBoard();
     if (!(board instanceof ComponentChessboard)) {
