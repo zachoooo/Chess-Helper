@@ -1,7 +1,7 @@
 import filter from "lodash/filter";
 import isEqual from "lodash/isEqual";
 import { postMessage, squareToCoords } from "./utils";
-import { drawCache } from "./globals";
+import { boards, drawCache } from "./globals";
 import { parseCommand } from "./commands";
 import {
   IChessboard,
@@ -121,31 +121,46 @@ export function goKbAndMouse(
       from: "..",
     },
   ]);
+
+  if (moves.length === 0) {
+    postMessage(
+      i18n("incorrectMove", { move: moveString(piece, targetSquare) })
+    );
+    return;
+  }
+
+  let move = null;
   if (moves.length === 1) {
-    const move = moves[0];
-    makeMove(board, move.from, move.to, move.promotionPiece);
-  } else if (moves.length > 1) {
-    const move = narrowDownMoves(
+    move = moves[0];
+  } else {
+    move = narrowDownMoves(
+      board.getPieceMap(),
       moves,
       piece,
       direction,
       board.game.getOptions().flipped
     );
-    if (move) {
-      makeMove(board, move.from, move.to, move.promotionPiece);
-    } else {
-      postMessage(
-        i18n("ambiguousMove", { move: moveString(piece, targetSquare) })
-      );
+  }
+  if (move) {
+    console.log(JSON.stringify(board.getPieceMap(), null, 2));
+    if (board.getPieceMap()[piece] && board.getPieceMap()[piece][direction]) {
+      for (const d in board.getPieceMap()[piece]) {
+        //
+      }
+      board.getPieceMap()[piece][direction] = move.to;
+      console.log(`Updating pieceMap for ${piece} ${direction} to ${move.to}`);
     }
+
+    makeMove(board, move.from, move.to, move.promotionPiece);
   } else {
     postMessage(
-      i18n("incorrectMove", { move: moveString(piece, targetSquare) })
+      i18n("ambiguousMove", { move: moveString(piece, targetSquare) })
     );
   }
 }
 
 function narrowDownMoves(
+  pieceMap: Record<TPiece, Record<KeyDirection, TArea>>,
   potentialMoves: IMove[],
   piece: TPiece,
   direction: KeyDirection,
@@ -190,6 +205,19 @@ function narrowDownMoves(
       }
     } else {
       throw new Error("Unsupported key direction");
+    }
+  }
+  if (["n", "r", "q"].includes(piece)) {
+    if (pieceMap[piece] && pieceMap[piece][direction]) {
+      const startingSquare = pieceMap[piece][direction];
+      const moves = potentialMoves.filter((move) => {
+        return move.from === startingSquare;
+      });
+      if (moves.length === 1) {
+        const move = moves[0];
+        pieceMap[piece][direction] = move.to;
+        return move;
+      }
     }
   }
   return null;

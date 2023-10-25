@@ -5,8 +5,10 @@ import {
   IMoveDetails,
   Nullable,
   MousePosition,
+  TPiece,
+  KeyDirection,
 } from "../../types";
-import { IGame, TElementWithGame, IMoveEvent } from "./types";
+import { IGame, TElementWithGame, IMoveEvent, IPiece } from "./types";
 import { squareToCoords, ALL_AREAS } from "../../utils";
 import { dispatchPointerEvent } from "../../dom-events";
 
@@ -19,15 +21,39 @@ const ERROR_AREA_COLOR = "#ff4444";
 export class ComponentChessboard implements IChessboard {
   element: TElementWithGame;
   game: IGame;
+  pieceMap: Nullable<Record<TPiece, Record<KeyDirection, TArea>>> = null;
+  // piece map getter
 
   constructor(element: Element) {
     this.element = <TElementWithGame>element;
     this.game = this.element.game;
+    if (this.pieceMap === null) {
+      this.initializePieceMap();
+    }
 
-    this.game.on("Move", () => {
+    this.game.on("Move", (move: IMoveEvent) => {
       const event = new Event("ccHelper-draw");
       document.dispatchEvent(event);
+      this.onMove(move);
     });
+  }
+
+  getPieceMap() {
+    if (!this.pieceMap) {
+      throw new Error("Piece map is not initialized");
+    }
+    return this.pieceMap;
+  }
+
+  onMove(move: IMoveEvent) {
+    if (!this.game.getPlayingAs) {
+      throw new Error("Unable to get playing as on move");
+    }
+    const playingAs = this.game.getPlayingAs();
+    const moveData = move.data.move;
+    if (moveData.color !== playingAs) {
+      // Not our move
+    }
   }
 
   getElement() {
@@ -220,6 +246,89 @@ export class ComponentChessboard implements IChessboard {
     if (dailyComponent) {
       (<any>dailyComponent).__vue__.$emit("save-move");
     }
+  }
+
+  setPieceMap(piece: TPiece, direction: KeyDirection, square: TArea) {
+    this.getPieceMap()[piece] = this.getPieceMap()[piece] || {};
+    this.getPieceMap()[piece][direction] = square;
+  }
+
+  _initializeQueens(pieces: IPiece[]) {
+    if (!pieces) {
+      return;
+    }
+    // Check for single queen and make it general
+    if (pieces.length === 1) {
+      const queen = pieces[0];
+      this.setPieceMap(queen.type, KeyDirection.GENERAL, queen.square);
+    }
+    // Piece length is now greater than one
+    // Check for single queen that wasn't promoted
+    const queen = pieces.find((piece) => !piece.promoted);
+    if (queen) {
+      this.setPieceMap(queen.type, KeyDirection.GENERAL, queen.square);
+    }
+  }
+
+  initializePieceMap() {
+    if (!this.pieceMap) {
+      this.pieceMap = {};
+    }
+    if (!this.game.getPlayingAs) {
+      throw new Error(
+        "Unable to get playing as side while initializing piece map"
+      );
+    }
+    const playingAs = this.game.getPlayingAs();
+    const allPieces = Object.values(this.game.getPieces().getCollection());
+    const playerPieces = allPieces.filter((piece) => {
+      return piece.color === playingAs;
+    });
+    const rooks = playerPieces.filter((piece) => piece.type === "r");
+    const knights = playerPieces.filter((piece) => piece.type === "n");
+    const queens = playerPieces.filter((piece) => piece.type === "q");
+
+    // Sort pieces by file (left to right) and then rank (top to bottom) from perspective of player
+    const sortPieces = (a: IPiece, b: IPiece) => {
+      const fileA = a.square.charCodeAt(0);
+      const fileB = b.square.charCodeAt(0);
+      const rankA = parseInt(a.square[1]);
+      const rankB = parseInt(b.square[1]);
+
+      if (playingAs === 1) {
+        // If playing as white
+        if (fileA !== fileB) return fileA - fileB;
+        return rankB - rankA;
+      } else {
+        if (fileA !== fileB) return fileB - fileA;
+        return rankA - rankB;
+      }
+    };
+
+    const processPieces = (pieces: IPiece[]) => {
+      if (pieces.length === 0) {
+        return;
+      }
+      const generalPiece = pieces[0];
+      const rightPiece = pieces[pieces.length - 1];
+      this.setPieceMap(
+        generalPiece.type,
+        KeyDirection.GENERAL,
+        generalPiece.square
+      );
+      if (generalPiece === rightPiece) {
+        return;
+      }
+      this.setPieceMap(rightPiece.type, KeyDirection.RIGHT, rightPiece.square);
+    };
+
+    rooks.sort(sortPieces);
+    knights.sort(sortPieces);
+    queens.sort(sortPieces);
+
+    processPieces(rooks);
+    processPieces(knights);
+    processPieces(queens);
   }
 
   _getMoveData(event: IMoveEvent): IMoveDetails {
