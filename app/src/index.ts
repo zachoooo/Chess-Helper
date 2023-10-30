@@ -38,6 +38,7 @@ function init() {
   const boardElement = document.querySelector(selector);
   if (boardElement) {
     const { wrapper, input, unfocusedLabel } = createInitialElements();
+    getBoard(); // Ensure initialization
 
     bindDocumentMouse();
     bindBoardKeyDown(document.body);

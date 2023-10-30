@@ -129,7 +129,7 @@ export function goKbAndMouse(
     return;
   }
 
-  let move = null;
+  let move: Nullable<IMove> = null;
   if (moves.length === 1) {
     move = moves[0];
   } else {
@@ -141,16 +141,7 @@ export function goKbAndMouse(
       board.game.getOptions().flipped
     );
   }
-  if (move) {
-    console.log(JSON.stringify(board.getPieceMap(), null, 2));
-    if (board.getPieceMap()[piece] && board.getPieceMap()[piece][direction]) {
-      for (const d in board.getPieceMap()[piece]) {
-        //
-      }
-      board.getPieceMap()[piece][direction] = move.to;
-      console.log(`Updating pieceMap for ${piece} ${direction} to ${move.to}`);
-    }
-
+  if (move !== null) {
     makeMove(board, move.from, move.to, move.promotionPiece);
   } else {
     postMessage(
@@ -214,9 +205,7 @@ function narrowDownMoves(
         return move.from === startingSquare;
       });
       if (moves.length === 1) {
-        const move = moves[0];
-        pieceMap[piece][direction] = move.to;
-        return move;
+        return moves[0];
       }
     }
   }

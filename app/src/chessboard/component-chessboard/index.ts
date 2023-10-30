@@ -9,7 +9,7 @@ import {
   KeyDirection,
 } from "../../types";
 import { IGame, TElementWithGame, IMoveEvent, IPiece } from "./types";
-import { squareToCoords, ALL_AREAS } from "../../utils";
+import { squareToCoords, ALL_AREAS, coordsToSquare } from "../../utils";
 import { dispatchPointerEvent } from "../../dom-events";
 
 const ERROR_AREA_COLOR = "#ff4444";
@@ -29,12 +29,13 @@ export class ComponentChessboard implements IChessboard {
     this.game = this.element.game;
     if (this.pieceMap === null) {
       this.initializePieceMap();
+      this.updateDirectionalColoring();
     }
 
     this.game.on("Move", (move: IMoveEvent) => {
       const event = new Event("ccHelper-draw");
-      document.dispatchEvent(event);
       this.onMove(move);
+      document.dispatchEvent(event);
     });
   }
 
@@ -51,8 +52,68 @@ export class ComponentChessboard implements IChessboard {
     }
     const playingAs = this.game.getPlayingAs();
     const moveData = move.data.move;
-    if (moveData.color !== playingAs) {
-      // Not our move
+    const piece = moveData.piece;
+    const pieceMap = this.getPieceMap();
+    console.log(moveData.san);
+    if (moveData.color === playingAs) {
+      if (["O-O", "O-O-O"].includes(moveData.san)) {
+        const rooksDirectionMap = pieceMap["r"];
+        const isKingSide = moveData.san === "O-O";
+        const kingCoords = squareToCoords(moveData.to);
+        console.log(`King coords are ${JSON.stringify(kingCoords)}`);
+        const rookFileNum = isKingSide ? kingCoords[0] - 1 : kingCoords[0] + 1;
+        const rookFile = ["", "a", "b", "c", "d", "e", "f", "g", "h"][
+          rookFileNum
+        ];
+        const rookSquare = `${rookFile}${kingCoords[1]}`;
+        // If there is only one rook on the board, we can assume that it is the one that castled
+        if (Object.keys(rooksDirectionMap).length === 1) {
+          const direction = Object.keys(rooksDirectionMap)[0] as KeyDirection;
+          this.setPieceMap("r", direction, rookSquare);
+          return;
+        }
+
+        // Otherwise we check if there is a rook on the correct square
+        // Check if rook is on the same rank as the king
+        // and is on the correct side of the king based on the type of castling
+        Object.entries(rooksDirectionMap).forEach(([direction, square]) => {
+          const rookCoords = squareToCoords(square);
+          const isSameRank = kingCoords[1] == rookCoords[1];
+          const isCorrectSide = isKingSide
+            ? rookCoords[0] > kingCoords[0]
+            : rookCoords[0] < kingCoords[0];
+          if (isSameRank && isCorrectSide) {
+            this.setPieceMap("r", direction as KeyDirection, rookSquare);
+            return;
+          }
+        });
+      } else if (pieceMap[piece]) {
+        const directionMap = pieceMap[piece];
+        for (const mapDirection in directionMap) {
+          const square = directionMap[mapDirection as KeyDirection];
+          if (square === moveData.from) {
+            this.setPieceMap(piece, mapDirection as KeyDirection, moveData.to);
+          }
+        }
+      }
+    } else {
+      if (moveData.capturedStr) {
+        const capturedPiece = moveData.capturedStr.toLowerCase();
+        if (pieceMap[capturedPiece]) {
+          const directionMap = pieceMap[capturedPiece];
+          let deleteDirection = null;
+          for (const mapDirection in directionMap) {
+            const square = directionMap[mapDirection as KeyDirection];
+            if (square === moveData.to) {
+              deleteDirection = mapDirection as KeyDirection;
+              break;
+            }
+          }
+          if (deleteDirection) {
+            this.deleteFromPieceMap(capturedPiece, deleteDirection);
+          }
+        }
+      }
     }
   }
 
@@ -248,29 +309,48 @@ export class ComponentChessboard implements IChessboard {
     }
   }
 
-  setPieceMap(piece: TPiece, direction: KeyDirection, square: TArea) {
-    this.getPieceMap()[piece] = this.getPieceMap()[piece] || {};
-    this.getPieceMap()[piece][direction] = square;
+  setPieceMap(
+    piece: TPiece,
+    direction: KeyDirection,
+    square: TArea,
+    update: boolean = true
+  ) {
+    const pieceMap = this.getPieceMap();
+    if (!pieceMap[piece]) {
+      pieceMap[piece] = {} as Record<KeyDirection, TArea>;
+    }
+    const directionMap = pieceMap[piece];
+    directionMap[direction] = square;
+    console.log(
+      `Direction map is now ${JSON.stringify(directionMap, null, 2)}`
+    );
+    console.log(`Piece map is now ${JSON.stringify(pieceMap, null, 2)}`);
+    if (update) {
+      this.updateDirectionalColoring();
+    }
   }
 
-  _initializeQueens(pieces: IPiece[]) {
-    if (!pieces) {
-      return;
+  deleteFromPieceMap(piece: TPiece, direction: KeyDirection) {
+    const pieceMap = this.getPieceMap();
+    if (!pieceMap[piece]) {
+      throw new Error(`Unable to find piece ${piece} in piece map`);
     }
-    // Check for single queen and make it general
-    if (pieces.length === 1) {
-      const queen = pieces[0];
-      this.setPieceMap(queen.type, KeyDirection.GENERAL, queen.square);
+    const directionMap = pieceMap[piece];
+    if (!directionMap[direction]) {
+      throw new Error(
+        `Unable to find direction ${direction} for piece ${piece}`
+      );
     }
-    // Piece length is now greater than one
-    // Check for single queen that wasn't promoted
-    const queen = pieces.find((piece) => !piece.promoted);
-    if (queen) {
-      this.setPieceMap(queen.type, KeyDirection.GENERAL, queen.square);
-    }
+    delete directionMap[direction];
+    console.log(
+      `Direction map is now ${JSON.stringify(directionMap, null, 2)}`
+    );
+    console.log(`Piece map is now ${JSON.stringify(pieceMap, null, 2)}`);
+    this.updateDirectionalColoring();
   }
 
   initializePieceMap() {
+    console.log("Initializing piece map");
     if (!this.pieceMap) {
       this.pieceMap = {};
     }
@@ -314,12 +394,18 @@ export class ComponentChessboard implements IChessboard {
       this.setPieceMap(
         generalPiece.type,
         KeyDirection.GENERAL,
-        generalPiece.square
+        generalPiece.square,
+        false
       );
       if (generalPiece === rightPiece) {
         return;
       }
-      this.setPieceMap(rightPiece.type, KeyDirection.RIGHT, rightPiece.square);
+      this.setPieceMap(
+        rightPiece.type,
+        KeyDirection.RIGHT,
+        rightPiece.square,
+        false
+      );
     };
 
     rooks.sort(sortPieces);
@@ -329,6 +415,37 @@ export class ComponentChessboard implements IChessboard {
     processPieces(rooks);
     processPieces(knights);
     processPieces(queens);
+    console.log(JSON.stringify(this.pieceMap));
+  }
+
+  clearDirectionalColoring() {
+    const piecesElements = Array.from(this.element.querySelectorAll(".piece"));
+    piecesElements.forEach((el) => {
+      el.classList.remove("glow-red");
+      el.classList.remove("glow-blue");
+    });
+  }
+
+  updateDirectionalColoring() {
+    this.clearDirectionalColoring();
+    const piecesElements = Array.from(this.element.querySelectorAll(".piece"));
+    const pieceMap = this.getPieceMap();
+    Object.entries(pieceMap).forEach(([piece, directionMap]) => {
+      Object.entries(directionMap).forEach(([direction, square]) => {
+        const coords = squareToCoords(square);
+        const pieceElement = piecesElements.find((el) => {
+          return el.classList.contains(`square-${coords[0]}${coords[1]}`);
+        });
+        if (!pieceElement) {
+          return;
+        }
+        if (direction === KeyDirection.GENERAL) {
+          pieceElement.classList.add("glow-blue");
+        } else {
+          pieceElement.classList.add("glow-red");
+        }
+      });
+    });
   }
 
   _getMoveData(event: IMoveEvent): IMoveDetails {

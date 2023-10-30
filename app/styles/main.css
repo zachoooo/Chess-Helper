@@ -310,3 +310,11 @@ input[type="text"].ccHelper-input::placeholder {
     position: absolute;
     top: 100%;
 }
+
+.glow-red {
+    filter: drop-shadow(0px 0px 0.5rem red) drop-shadow(0px 0px 0.5rem red);
+}
+
+.glow-blue {
+    filter: drop-shadow(0px 0px 0.5rem blue) drop-shadow(0px 0px 0.5rem blue);
+}

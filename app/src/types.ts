@@ -84,7 +84,7 @@ export type TTranslationId =
 export type TLocaleSet = Record<TTranslationId, string>;
 
 export enum KeyDirection {
-  GENERAL,
-  LEFT,
-  RIGHT,
+  GENERAL = "GENERAL",
+  LEFT = "LEFT",
+  RIGHT = "RIGHT",
 }
