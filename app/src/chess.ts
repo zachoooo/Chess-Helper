@@ -114,13 +114,16 @@ export function goKbAndMouse(
   const moveString = (piece: TPiece, targetSquare: TArea) => {
     return piece === "p" ? targetSquare : piece.toUpperCase() + targetSquare;
   };
-  const moves = getLegalMoves(board, [
+  const potentialMovesTemplates = [
     {
       piece: piece,
       to: targetSquare,
       from: "..",
     },
-  ]);
+  ];
+  const moves = board.isPlayersMove()
+    ? getLegalMoves(board, potentialMovesTemplates)
+    : getLegalPremoves(board, potentialMovesTemplates);
 
   if (moves.length === 0) {
     postMessage(
@@ -277,6 +280,42 @@ export function getLegalMoves(
   });
 
   return excludeConflictingMoves(legalMoves);
+}
+
+export function getLegalPremoves(
+  board: ComponentChessboard,
+  potentialMoves: IPotentialMoves
+): IMove[] {
+  if (!board || !potentialMoves.length) {
+    return [];
+  }
+
+  let allLegalMoves = board.game.premoves.getLegalMoves();
+  const moves: IMove[] = [];
+  potentialMoves.forEach((move) => {
+    const matchingMoves = allLegalMoves.filter((m) => {
+      const matchingPiece =
+        !m.piece || new RegExp(`^${move.piece}$`).test(m.piece);
+      const matchingFrom =
+        !m.from || !move.from || new RegExp(`^${move.from}$`).test(m.from);
+      const matchingTo = m.to === move.to;
+      const matchingPromotion = m.promotion === move.promotionPiece;
+      return matchingPiece && matchingFrom && matchingTo && matchingPromotion;
+    });
+    for (const move of matchingMoves) {
+      if (!move.piece) {
+        continue;
+      }
+      moves.push({
+        piece: move.piece,
+        from: move.from,
+        to: move.to,
+        promotionPiece: move.promotion,
+      });
+    }
+  });
+  console.log(`Legal premoves are ${JSON.stringify(moves, null, 2)}`);
+  return moves;
 }
 
 /**

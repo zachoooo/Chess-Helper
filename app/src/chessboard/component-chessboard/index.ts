@@ -54,7 +54,6 @@ export class ComponentChessboard implements IChessboard {
     const moveData = move.data.move;
     const piece = moveData.piece;
     const pieceMap = this.getPieceMap();
-    console.log(moveData.san);
     if (moveData.color === playingAs) {
       if (["O-O", "O-O-O"].includes(moveData.san)) {
         const rooksDirectionMap = pieceMap["r"];
