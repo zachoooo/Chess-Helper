@@ -114,11 +114,17 @@ export function goKbAndMouse(
   const moveString = (piece: TPiece, targetSquare: TArea) => {
     return piece === "p" ? targetSquare : piece.toUpperCase() + targetSquare;
   };
+  const targetCoords = squareToCoords(targetSquare);
+  let promotionPiece = undefined;
+  if (piece === "p" && [1, 8].includes(targetCoords[1])) {
+    promotionPiece = "q";
+  }
   const potentialMovesTemplates = [
     {
       piece: piece,
       to: targetSquare,
       from: "..",
+      promotionPiece: promotionPiece,
     },
   ];
   const moves = board.isPlayersMove()
