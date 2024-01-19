@@ -93,6 +93,30 @@ export type TEventType =
   | "Undo"
   | "UpdateOptions";
 
+export interface ILoadEvent {
+  data: {
+    fen: string;
+    pieces: Record<TArea, IPiece>;
+    sideToMove: number;
+    castling: string;
+    epSquare: string | null;
+    halfMoves: number;
+    moveNumber: number;
+    gameOver: boolean;
+    check: boolean;
+    checkmate: boolean;
+    draw: boolean;
+    stalemate: boolean;
+    threefold: boolean;
+    insufficient: boolean;
+    fiftyMoveRule: boolean;
+    isValid: boolean;
+    line: any[];
+    variant: string;
+  };
+  type: "Load";
+}
+
 export interface IMoveEvent {
   data: {
     plyDiff: number;

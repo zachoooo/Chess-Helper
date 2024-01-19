@@ -8,7 +8,13 @@ import {
   TPiece,
   KeyDirection,
 } from "../../types";
-import { IGame, TElementWithGame, IMoveEvent, IPiece } from "./types";
+import {
+  IGame,
+  TElementWithGame,
+  IMoveEvent,
+  IPiece,
+  ILoadEvent,
+} from "./types";
 import { squareToCoords, ALL_AREAS, coordsToSquare } from "../../utils";
 import { dispatchPointerEvent } from "../../dom-events";
 
@@ -27,10 +33,12 @@ export class ComponentChessboard implements IChessboard {
   constructor(element: Element) {
     this.element = <TElementWithGame>element;
     this.game = this.element.game;
-    if (this.pieceMap === null) {
+
+    this.game.on("Load", (loadEvent: ILoadEvent) => {
+      console.log(`Game load event detected: ${JSON.stringify(loadEvent)}`);
       this.initializePieceMap();
       this.updateDirectionalColoring();
-    }
+    });
 
     this.game.on("Move", (move: IMoveEvent) => {
       const event = new Event("ccHelper-draw");
@@ -359,6 +367,10 @@ export class ComponentChessboard implements IChessboard {
       );
     }
     const playingAs = this.game.getPlayingAs();
+    if (!playingAs) {
+      console.warn("Unable to get playing as side while initializing");
+      return;
+    }
     const allPieces = Object.values(this.game.getPieces().getCollection());
     const playerPieces = allPieces.filter((piece) => {
       return piece.color === playingAs;
